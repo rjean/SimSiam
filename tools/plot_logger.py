@@ -1,5 +1,3 @@
-import matplotlib
-matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from collections import OrderedDict
 
@@ -15,6 +13,7 @@ class PlotLogger(object):
 
     def save(self, file, **kwargs):
         fig, axes = plt.subplots(nrows=len(self.logger), ncols=1)
+        fig.tight_layout()
         for ax, (key, value) in zip(axes, self.logger.items()):
             ax.plot(value)
             ax.set_title(key)
