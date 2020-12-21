@@ -24,8 +24,10 @@ python main.py \
                     --optimizer str('sgd')" \
 --head_tail_accuracy \
 --output_dir outputs/cifar10_experiment/ \
---data_dir ../Data/ \
+--data_dir data \
 --hide_progress
+
+
 
 
 
