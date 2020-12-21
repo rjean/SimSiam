@@ -78,7 +78,7 @@ def main(args, model=None):
     # define optimizer
     optimizer = get_optimizer(
         args.optimizer, classifier, 
-        lr=args.base_lr*args.batch_size/256, 
+        lr=args.base_lr/args.batch_size, 
         momentum=args.momentum, 
         weight_decay=args.weight_decay)
 
@@ -87,8 +87,8 @@ def main(args, model=None):
     # define lr scheduler
     lr_scheduler = LR_Scheduler(
         optimizer,
-        args.warmup_epochs, args.warmup_lr*args.batch_size/256, 
-        args.num_epochs, args.base_lr*args.batch_size/256, args.final_lr*args.batch_size/256, 
+        args.warmup_epochs, args.warmup_lr/args.batch_size, 
+        args.num_epochs, args.base_lr/args.batch_size, args.final_lr/args.batch_size, 
         len(train_loader)
     )
 

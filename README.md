@@ -59,6 +59,9 @@ Evaluating: 100%|###################################| 100/100 [08:24<00:00,  5.0
 ```
 
 
+### Linear Evaluation
+(simsiam) raphael@rocinante:~/Menya/SimSiam$ python linear_eval.py --base_lr 0.0001 --weight_decay 0 --momentum 0.9 --warmup_epochs 0 --batch_size 256 --num_epochs 100 --optimizer sgd --eval_from outputs/cifar10_experiment/simsiam-cifar10-epoch80.pth --output_dir output --data_dir data --dataset cifar10 --image_size 3
+
 ### Run SimCLR
 
 ```
