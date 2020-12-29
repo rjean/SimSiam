@@ -63,15 +63,15 @@ def main(args):
     # define optimizer
     optimizer = get_optimizer(
         args.optimizer, classifier, 
-        lr=args.base_lr/args.batch_size, 
+        lr=args.base_lr*args.batch_size/256, 
         momentum=args.momentum, 
         weight_decay=args.weight_decay)
 
     # define lr scheduler
     lr_scheduler = LR_Scheduler(
         optimizer,
-        args.warmup_epochs, args.warmup_lr/args.batch_size, 
-        args.num_epochs, args.base_lr/args.batch_size, args.final_lr/args.batch_size, 
+        args.warmup_epochs, args.warmup_lr*args.batch_size/256, 
+        args.num_epochs, args.base_lr*args.batch_size/256, args.final_lr*args.batch_size/256, 
         len(train_loader)
     )
 

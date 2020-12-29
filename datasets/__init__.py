@@ -3,11 +3,14 @@ import torchvision
 from .random_dataset import RandomDataset
 
 
-def get_dataset(dataset, data_dir, transform, train=True, download=False, debug_subset_size=None):
+def get_dataset(dataset, data_dir, transform, train=True, download=False, debug_subset_size=None, only_train=False):
     if dataset == 'mnist':
         dataset = torchvision.datasets.MNIST(data_dir, train=train, transform=transform, download=download)
     elif dataset == 'stl10':
-        dataset = torchvision.datasets.STL10(data_dir, split='train+unlabeled' if train else 'test', transform=transform, download=download)
+        if not only_train:
+            dataset = torchvision.datasets.STL10(data_dir, split='train+unlabeled' if train else 'test', transform=transform, download=download)
+        else:
+            dataset = torchvision.datasets.STL10(data_dir, split='train' if train else 'test', transform=transform, download=download)
     elif dataset == 'cifar10':
         dataset = torchvision.datasets.CIFAR10(data_dir, train=train, transform=transform, download=download)
     elif dataset == 'cifar100':
@@ -16,6 +19,11 @@ def get_dataset(dataset, data_dir, transform, train=True, download=False, debug_
         dataset = torchvision.datasets.ImageNet(data_dir, split='train' if train == True else 'val', transform=transform, download=download)
     elif dataset == 'random':
         dataset = RandomDataset()
+    elif dataset == "folder":
+        subset = "train" #default
+        if not train:
+            subset="valid"
+        dataset  = torchvision.datasets.ImageFolder(f"{data_dir}/{subset}", transform=transform)
     else:
         raise NotImplementedError
     if debug_subset_size is not None:

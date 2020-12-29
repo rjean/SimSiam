@@ -40,6 +40,7 @@ def main(device, args):
         dataset=get_dataset(
             transform=get_aug(args.model, args.image_size, False, train_classifier=False), 
             train=True,
+            only_train=True, #Required for STL10
             **dataset_kwargs),
         shuffle=False,
         **dataloader_kwargs
@@ -85,7 +86,6 @@ def main(device, args):
         # plot_logger.update({'epoch':epoch, 'accuracy':accuracy})
         local_progress=tqdm(train_loader, desc=f'Epoch {epoch}/{args.num_epochs}', disable=args.hide_progress)
         for idx, ((images1, images2), labels) in enumerate(local_progress):
-
             model.zero_grad()
             loss = model.forward(images1.to(device, non_blocking=True), images2.to(device, non_blocking=True))
             loss.backward()
