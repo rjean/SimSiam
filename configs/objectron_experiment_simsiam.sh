@@ -1,10 +1,11 @@
 #!/bin/bash
 python main.py \
---dataset cifar10 \
---image_size 32 \
+--dataset folder \
+--image_size 96 \
 --model simsiam \
 --proj_layers 2 \
 --backbone resnet18 \
+--download \
 --optimizer sgd \
 --weight_decay 0.0005 \
 --momentum 0.9 \
@@ -24,8 +25,9 @@ python main.py \
                     --optimizer str('sgd')" \
 --head_tail_accuracy \
 --hide_progress \
---output_dir outputs/cifar10_experiment/ \
---data_dir data/ \
+--output_dir outputs/objectron_96x96_experiment/ \
+--data_dir datasets/objectron_96x96/ \
+--resume_from_last \
 # --debug
 
 

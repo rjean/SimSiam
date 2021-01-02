@@ -13,6 +13,8 @@ from datasets import get_dataset
 from optimizers import get_optimizer, LR_Scheduler
 from linear_eval import main as linear_eval
 
+import glob
+import os
 
 def main(device, args):
     dataset_kwargs = {
@@ -28,34 +30,56 @@ def main(device, args):
         'num_workers': args.num_workers,
     }
     
-    train_loader = torch.utils.data.DataLoader(
-        dataset=get_dataset(
-            transform=get_aug(args.model, args.image_size, True), 
+    train_dataset=get_dataset(
+            transform=get_aug(args.aug, args.image_size, True), 
             train=True, 
-            **dataset_kwargs),
+            **dataset_kwargs)
+
+    memory_dataset=get_dataset(
+            transform=get_aug(args.aug, args.image_size, False, train_classifier=False), 
+            train=True,
+            only_train=True, #Required for STL10
+            **dataset_kwargs)
+
+    test_dataset = get_dataset( 
+            transform=get_aug(args.model, args.image_size, False, train_classifier=False), 
+            train=False,
+            **dataset_kwargs)
+
+    train_loader = torch.utils.data.DataLoader(
+        dataset=train_dataset,
         shuffle=True,
         **dataloader_kwargs
     )
     memory_loader = torch.utils.data.DataLoader(
-        dataset=get_dataset(
-            transform=get_aug(args.model, args.image_size, False, train_classifier=False), 
-            train=True,
-            only_train=True, #Required for STL10
-            **dataset_kwargs),
-        shuffle=False,
-        **dataloader_kwargs
-    )
-    test_loader = torch.utils.data.DataLoader(
-        dataset=get_dataset( 
-            transform=get_aug(args.model, args.image_size, False, train_classifier=False), 
-            train=False,
-            **dataset_kwargs),
+        dataset=memory_dataset,
         shuffle=False,
         **dataloader_kwargs
     )
 
+    test_loader = torch.utils.data.DataLoader(
+        dataset=test_dataset,
+        shuffle=False,
+        **dataloader_kwargs
+    )
+
+
     # define model
+    model_path = None
     model = get_model(args.model, args.backbone).to(device)
+
+    #model_folder = os.path.join(args.output_dir, f'{args.model}-{args.dataset}-epoch{epoch+1}.pth')
+    load_epoch = 0 
+    if args.resume_from_last:
+        #https://stackoverflow.com/questions/39327032/how-to-get-the-latest-file-in-a-folder/39327156#39327156
+        list_of_files = glob.glob(f'{args.output_dir}/*.pth') # * means all if need specific format then *.csv
+        model_path = max(list_of_files, key=os.path.getctime)
+        print(f"Loading model parameters from {model_path}")
+        model.load_state_dict(torch.load(model_path)['state_dict'])
+        #Parse the epoch number from the filename.
+        load_epoch = int(os.path.basename(model_path).split("epoch")[-1].split(".")[-2])
+        model.eval()
+
     if args.model == 'simsiam' and args.proj_layers is not None: model.projector.set_layers(args.proj_layers)
     model = torch.nn.DataParallel(model)
     if torch.cuda.device_count() > 1: model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
@@ -78,7 +102,7 @@ def main(device, args):
     loss_meter = AverageMeter(name='Loss')
     plot_logger = PlotLogger(params=['lr', 'loss', 'accuracy'])
     # Start training
-    global_progress = tqdm(range(0, args.stop_at_epoch), desc=f'Training')
+    global_progress = tqdm(range(load_epoch, args.stop_at_epoch), desc=f'Training')
     for epoch in global_progress:
         loss_meter.reset()
         model.train()
@@ -101,20 +125,18 @@ def main(device, args):
         plot_logger.update({'accuracy':accuracy})
         plot_logger.save(os.path.join(args.output_dir, 'logger.svg'))
 
-    
-        # Save checkpoint
-        
-    model_path = os.path.join(args.output_dir, f'{args.model}-{args.dataset}-epoch{epoch+1}.pth')
-    torch.save({
-        'epoch': epoch+1,
-        'state_dict':model.module.state_dict(),
-        # 'optimizer':optimizer.state_dict(), # will double the checkpoint file size
-        'lr_scheduler':lr_scheduler,
-        'args':args,
-        'loss_meter':loss_meter,
-        'plot_logger':plot_logger
-    }, model_path)
-    print(f"Model saved to {model_path}")
+        # Save checkpoint at the end of each epoch 
+        model_path = os.path.join(args.output_dir, f'{args.model}-{args.dataset}-epoch{epoch+1}.pth')
+        torch.save({
+            'epoch': epoch+1,
+            'state_dict':model.module.state_dict(),
+            # 'optimizer':optimizer.state_dict(), # will double the checkpoint file size
+            'lr_scheduler':lr_scheduler,
+            'args':args,
+            'loss_meter':loss_meter,
+            'plot_logger':plot_logger
+        }, model_path)
+        print(f"Model saved to {model_path}")
         
 
     if args.eval_after_train is not None:

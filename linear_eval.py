@@ -86,6 +86,7 @@ def main(args):
         classifier.train()
         local_progress = tqdm(train_loader, desc=f'Epoch {epoch}/{args.num_epochs}', disable=args.hide_progress)
         
+        
         for idx, (images, labels) in enumerate(local_progress):
 
             classifier.zero_grad()

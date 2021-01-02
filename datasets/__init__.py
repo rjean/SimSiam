@@ -1,6 +1,7 @@
 import torch
 import torchvision
 from .random_dataset import RandomDataset
+from .objectron_dataset import ObjectronDataset
 
 
 def get_dataset(dataset, data_dir, transform, train=True, download=False, debug_subset_size=None, only_train=False):
@@ -20,10 +21,21 @@ def get_dataset(dataset, data_dir, transform, train=True, download=False, debug_
     elif dataset == 'random':
         dataset = RandomDataset()
     elif dataset == "folder":
-        subset = "train" #default
+        split = "train" #default
         if not train:
-            subset="valid"
-        dataset  = torchvision.datasets.ImageFolder(f"{data_dir}/{subset}", transform=transform)
+            split="valid"
+        dataset  = torchvision.datasets.ImageFolder(f"{data_dir}/{split}", transform=transform)
+    elif dataset =="objectron":
+        split = "train" #default
+        if only_train: #For the memory dataloader
+            #dataset  = torchvision.datasets.ImageFolder(f"{data_dir}/{split}", transform=transform)
+            dataset  = ObjectronDataset(root=data_dir, transform=transform, split="train", single=True)
+            return dataset
+        if not train:
+            #split="valid"
+            dataset  = ObjectronDataset(root=data_dir, transform=transform, split="valid", single=True)
+        else:
+            dataset = ObjectronDataset(root=data_dir, transform=transform, split="train")
     else:
         raise NotImplementedError
     if debug_subset_size is not None:

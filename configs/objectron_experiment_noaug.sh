@@ -27,6 +27,7 @@ python main.py \
 --hide_progress \
 --output_dir outputs/objectron_96x96_experiment/ \
 --data_dir datasets/objectron_96x96/ \
+--resume_from_last \
 # --debug
 
 

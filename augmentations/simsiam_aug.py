@@ -8,7 +8,8 @@ except ImportError:
 imagenet_mean_std = [[0.485, 0.456, 0.406],[0.229, 0.224, 0.225]]
 
 class SimSiamTransform():
-    def __init__(self, image_size, mean_std=imagenet_mean_std):
+    def __init__(self, image_size, mean_std=imagenet_mean_std, single=False):
+        self.single = single
         image_size = 224 if image_size is None else image_size # by default simsiam use image size 224
         p_blur = 0.5 if image_size > 32 else 0 
         # the paper didn't specify this, feel free to change this value
@@ -24,9 +25,12 @@ class SimSiamTransform():
             T.Normalize(*mean_std)
         ])
     def __call__(self, x):
-        x1 = self.transform(x)
-        x2 = self.transform(x)
-        return x1, x2 
+        if not self.single:
+            x1 = self.transform(x)
+            x2 = self.transform(x)
+            return x1, x2
+        else:
+            return self.transform(x) 
 
 
 def to_pil_image(pic, mode=None):

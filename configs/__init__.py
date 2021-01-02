@@ -32,6 +32,7 @@ def get_args():
     parser.add_argument('--data_dir', type=str, default=os.getenv('DATA'))
     parser.add_argument('--output_dir', type=str, default=os.getenv('OUTPUT'))
     parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu')
+    parser.add_argument('--resume_from_last', action="store_true", default=False, help="Resume from last checkpoint")
     parser.add_argument('--resume', type=str, default=None)
     parser.add_argument('--eval_from', type=str, default=None)
 
@@ -39,6 +40,7 @@ def get_args():
     parser.add_argument('--use_default_hyperparameters', action='store_true')
     # model related params
     parser.add_argument('--model', type=str, default='simsiam')
+    parser.add_argument("--aug", type=str, default="simsiam")
     parser.add_argument('--backbone', type=str, default='resnet50')
     parser.add_argument('--num_epochs', type=int, default=100, help='This will affect learning rate decay')
     parser.add_argument('--stop_at_epoch', type=int, default=None)
