@@ -46,7 +46,7 @@ class ObjectronDataset(torch.utils.data.Dataset):
         for category in self.categories:
             self.sequences_by_categories[category] = self._get_sequences(category, self.split)
 
-        self._load_samples()
+        self._load_samples(self.split)
         if debug_subset_size is not None:
             self.samples = random.sample(self.samples, debug_subset_size)
         #categories        

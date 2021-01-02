@@ -18,6 +18,7 @@ def main(args):
         args.data_dir, 
         transform=get_aug(args.model, args.image_size, train=False, train_classifier=True), 
         train=True, 
+        only_train=True,
         download=args.download, # default is False
         debug_subset_size=args.batch_size if args.debug else None
     )
