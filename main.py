@@ -73,12 +73,17 @@ def main(device, args):
     if args.resume_from_last:
         #https://stackoverflow.com/questions/39327032/how-to-get-the-latest-file-in-a-folder/39327156#39327156
         list_of_files = glob.glob(f'{args.output_dir}/*.pth') # * means all if need specific format then *.csv
-        model_path = max(list_of_files, key=os.path.getctime)
-        print(f"Loading model parameters from {model_path}")
-        model.load_state_dict(torch.load(model_path)['state_dict'])
-        #Parse the epoch number from the filename.
-        load_epoch = int(os.path.basename(model_path).split("epoch")[-1].split(".")[-2])
-        model.eval()
+        if len(list_of_files)>0:
+            model_path = max(list_of_files, key=os.path.getctime)
+            print(f"Loading model parameters from {model_path}")
+            model.load_state_dict(torch.load(model_path)['state_dict'])
+            #Parse the epoch number from the filename.
+            load_epoch = int(os.path.basename(model_path).split("epoch")[-1].split(".")[-2])
+            model.eval()
+        else:
+            print("No checkpoint found for this experiment. Starting from scratch")
+            #No save found!
+            pass
 
     if args.model == 'simsiam' and args.proj_layers is not None: model.projector.set_layers(args.proj_layers)
     model = torch.nn.DataParallel(model)
