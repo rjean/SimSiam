@@ -15,7 +15,7 @@ def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, 
         for data, target in tqdm(memory_data_loader, desc='Feature extracting', leave=False, disable=hide_progress):
             with autocast():
                 feature = net(data.cuda(non_blocking=True))
-            feature = F.normalize(feature, dim=1)
+                feature = F.normalize(feature, dim=1)
             feature_bank.append(feature)
             target_bank.append(target)
         # [D, N]
