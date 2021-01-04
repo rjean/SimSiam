@@ -12,6 +12,8 @@ from tools import AverageMeter, PlotLogger, knn_monitor
 from datasets import get_dataset
 from optimizers import get_optimizer, LR_Scheduler
 from linear_eval import main as linear_eval
+from torch.utils.tensorboard import SummaryWriter
+from torch.cuda.amp import autocast
 
 import glob
 import os
@@ -92,20 +94,22 @@ def main(device, args):
     # define optimizer
     optimizer = get_optimizer(
         args.optimizer, model, 
-        lr=args.base_lr*args.batch_size/256, 
+        lr=args.base_lr, 
         momentum=args.momentum,
         weight_decay=args.weight_decay)
 
     lr_scheduler = LR_Scheduler(
         optimizer,
-        args.warmup_epochs, args.warmup_lr*args.batch_size/256, 
-        args.num_epochs, args.base_lr*args.batch_size/256, args.final_lr*args.batch_size/256, 
+        args.warmup_epochs, args.warmup_lr, 
+        args.num_epochs, args.base_lr, args.final_lr, 
         len(train_loader),
         constant_predictor_lr=True # see the end of section 4.2 predictor
     )
 
     loss_meter = AverageMeter(name='Loss')
     plot_logger = PlotLogger(params=['lr', 'loss', 'accuracy'])
+    writer = SummaryWriter()
+
     # Start training
     global_progress = tqdm(range(load_epoch, args.stop_at_epoch), desc=f'Training')
     for epoch in global_progress:
@@ -114,9 +118,17 @@ def main(device, args):
         
         # plot_logger.update({'epoch':epoch, 'accuracy':accuracy})
         local_progress=tqdm(train_loader, desc=f'Epoch {epoch}/{args.num_epochs}', disable=args.hide_progress)
+        lr=0
         for idx, ((images1, images2), labels) in enumerate(local_progress):
-            model.zero_grad()
-            loss = model.forward(images1.to(device, non_blocking=True), images2.to(device, non_blocking=True))
+            if idx==0:
+                grid1 = torchvision.utils.make_grid(images1, normalize=True)
+                grid2 = torchvision.utils.make_grid(images2, normalize=True)
+                both = torch.cat((grid1,grid2),dim=2)
+                writer.add_image('image_pairs', both, epoch)
+            with autocast():
+                model.zero_grad()
+                loss = model.forward(images1.to(device, non_blocking=True), images2.to(device, non_blocking=True))
+            
             loss.backward()
             optimizer.step()
             loss_meter.update(loss.item())
@@ -129,6 +141,9 @@ def main(device, args):
         global_progress.set_postfix({"epoch":epoch, "loss_avg":loss_meter.avg, "accuracy":accuracy})
         plot_logger.update({'accuracy':accuracy})
         plot_logger.save(os.path.join(args.output_dir, 'logger.svg'))
+        writer.add_scalar("Loss/train", loss_meter.avg)
+        writer.add_scalar("Learning rate", lr)
+        writer.add_scalar("NN Accuracy/valid", accuracy)
 
         # Save checkpoint at the end of each epoch 
         model_path = os.path.join(args.output_dir, f'{args.model}-{args.dataset}-epoch{epoch+1}.pth')
