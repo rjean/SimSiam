@@ -6,3 +6,5 @@ tmp/
 .vscode/
 data/
 Data/
+datasets/objectron_96x96/
+
