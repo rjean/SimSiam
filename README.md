@@ -3,6 +3,7 @@ A PyTorch implementation for the paper [**Exploring Simple Siamese Representatio
 
 This repo also provides pytorch implementations for simclr, byol and swav. I wrote the models using the exact set of configurations in their papers. You can open a pull request if mistakes are found.
 
+
 ### Dependencies
 
 If you don't have python 3 environment:
