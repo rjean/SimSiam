@@ -14,6 +14,7 @@ from optimizers import get_optimizer, LR_Scheduler
 from linear_eval import main as linear_eval
 from torch.utils.tensorboard import SummaryWriter
 from torch.cuda.amp import autocast
+import cProfile
 
 import glob
 import os
@@ -69,6 +70,8 @@ def main(device, args):
     # define model
     model_path = None
     model = get_model(args.model, args.backbone).to(device)
+    
+
 
     #model_folder = os.path.join(args.output_dir, f'{args.model}-{args.dataset}-epoch{epoch+1}.pth')
     load_epoch = 0 
@@ -112,7 +115,10 @@ def main(device, args):
 
     # Start training
     global_progress = tqdm(range(load_epoch, args.stop_at_epoch), desc=f'Training')
+    #pr = cProfile.Profile()
+    
     for epoch in global_progress:
+        #pr.enable()
         loss_meter.reset()
         model.train()
         
@@ -137,13 +143,16 @@ def main(device, args):
             data_dict = {'lr':lr, "loss":loss_meter.val}
             local_progress.set_postfix(data_dict)
             plot_logger.update(data_dict)
-        accuracy = knn_monitor(model.module.backbone, memory_loader, test_loader, device, k=200, hide_progress=args.hide_progress)
+            if args.dry_run:
+                print("Warning: Dry run mode enable. No iteration will be performed.")
+                break #Do not iterrate for dry-running.
+        accuracy = knn_monitor(model.module.backbone, memory_loader, test_loader, epoch, k=200, hide_progress=args.hide_progress, writer=writer)
         global_progress.set_postfix({"epoch":epoch, "loss_avg":loss_meter.avg, "accuracy":accuracy})
         plot_logger.update({'accuracy':accuracy})
         plot_logger.save(os.path.join(args.output_dir, 'logger.svg'))
-        writer.add_scalar("Loss/train", loss_meter.avg)
-        writer.add_scalar("Learning rate", lr)
-        writer.add_scalar("NN Accuracy/valid", accuracy)
+        writer.add_scalar("Loss/train", loss_meter.avg, epoch)
+        writer.add_scalar("Learning rate", lr, epoch)
+        writer.add_scalar("NN Accuracy/valid", accuracy, epoch)
 
         # Save checkpoint at the end of each epoch 
         model_path = os.path.join(args.output_dir, f'{args.model}-{args.dataset}-epoch{epoch+1}.pth')
@@ -157,6 +166,11 @@ def main(device, args):
             'plot_logger':plot_logger
         }, model_path)
         print(f"Model saved to {model_path}")
+        #pr.disable()
+        #pr.print_stats("cumulative")
+        #break
+
+
         
 
     if args.eval_after_train is not None:
