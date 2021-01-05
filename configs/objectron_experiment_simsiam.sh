@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash                                         
 python main.py \
 --dataset folder \
 --image_size 96 \

@@ -3,7 +3,7 @@ import torch.nn.functional as F
 import torch
 # code copied from https://colab.research.google.com/github/facebookresearch/moco/blob/colab-notebook/colab/moco_cifar10_demo.ipynb#scrollTo=RI1Y8bSImD7N
 # test using a knn monitor
-def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, hide_progress=False):
+def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, hide_progress=False, writer=None):
     net.eval()
     classes = len(memory_data_loader.dataset.classes)
     total_top1, total_top5, total_num, feature_bank = 0.0, 0.0, 0, []
@@ -22,6 +22,9 @@ def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, 
         #feature_labels = torch.tensor(memory_data_loader.dataset.targets, device=feature_bank.device)
         # loop test data to predict the label by weighted knn search
         test_bar = tqdm(test_data_loader, desc='kNN', disable=hide_progress)
+
+        test_embeddings = []
+        test_targets = []
         for data, target in test_bar:
             data, target = data.cuda(non_blocking=True), target.cuda(non_blocking=True)
             feature = net(data)
@@ -32,6 +35,18 @@ def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, 
             total_num += data.size(0)
             total_top1 += (pred_labels[:, 0] == target).float().sum().item()
             test_bar.set_postfix({'Accuracy':total_top1 / total_num * 100})
+            
+                #for 
+                
+            test_embeddings.append(feature)
+            test_targets+=list(target.cpu().numpy())
+        if writer:
+            test_embeddings = torch.vstack(test_embeddings)
+            test_target_labels = []
+            for target in test_targets:
+                test_target_labels.append(test_data_loader.dataset.classes[target])
+            writer.add_embedding(test_embeddings, metadata=test_target_labels, tag="test", global_step=epoch)
+
     return total_top1 / total_num * 100
 
 # knn monitor as in InstDisc https://arxiv.org/abs/1805.01978
