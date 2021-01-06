@@ -49,7 +49,8 @@ def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, 
             test_target_labels = []
             for target in test_targets:
                 test_target_labels.append(test_data_loader.dataset.classes[target])
-            writer.add_embedding(test_embeddings, metadata=test_target_labels, tag="test", global_step=epoch)
+            #Overwrite embeddings each time so it does no takes to much place on disk
+            writer.add_embedding(test_embeddings, metadata=test_target_labels, tag="test", global_step=0)
 
     return total_top1 / total_num * 100
 
