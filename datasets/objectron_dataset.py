@@ -20,12 +20,13 @@ def expand2square(pil_img, background_color=0):
 
 
 class ObjectronDataset(torch.utils.data.Dataset):
-    def __init__(self, root="datasets/objectron_96x96", split="train", train=True, single=False, transform=None, debug_subset_size=None):
+    def __init__(self, root="datasets/objectron_96x96", split="train", train=True, single=False, transform=None, debug_subset_size=None, return_indices = False):
         self.root=root
         self.split = split
         self.transform = transform
         self.size = None
         self.single = single
+        self.return_indices = return_indices
         #splits = glob.glob(f"{root}/*/")
         #if len(splits)==0:
         #    raise ValueError(f"Could not find splits in {root}")
@@ -42,11 +43,13 @@ class ObjectronDataset(torch.utils.data.Dataset):
 
         self.number_of_pictures = 0
         #
+        #self.
         self.sequences_by_categories = {}
         for category in self.categories:
             self.sequences_by_categories[category] = self._get_sequences(category, self.split)
 
         self._load_samples(self.split)
+
         if debug_subset_size is not None:
             self.samples = random.sample(self.samples, debug_subset_size)
         #categories        
@@ -75,10 +78,12 @@ class ObjectronDataset(torch.utils.data.Dataset):
                 if len(self.sequences_by_categories[category][sequence])>5:
                     self.number_of_pictures+=len(self.sequences_by_categories[category][sequence])
                     for basename in self.sequences_by_categories[category][sequence]:
-                        sample = {"category": category, "sequence": sequence, "basename": basename, "split": split}
+                        frame_id = basename.split(".")[-2].split("_")[-1]
+                        sample = {"category": category, "sequence": sequence, 
+                                  "basename": basename, "split": split, "frame_id": frame_id}
                         samples.append(sample)
                 else:
-                    print(f"Skipping {category}/{sequence} : Not enought samples!")
+                    print(f"Skipping {category}/{sequence} : Not enough samples!")
             print(f"Category {category} has {len(self.sequences_by_categories[category])} sequences, for a total of {self.number_of_pictures} pictures")
     
         print(f"Total of {len(samples)} samples")
@@ -99,6 +104,8 @@ class ObjectronDataset(torch.utils.data.Dataset):
         raise ValueError(f"Unable to find another different image for this batch. Please check if there is more than one sample in the sequence! {image_path1}")
         
         
+    def get_sequence_uid(self, idx):
+        return self.samples[idx][""]
 
     def __getitem__(self, idx):
         success=False
@@ -130,10 +137,13 @@ class ObjectronDataset(torch.utils.data.Dataset):
             
         if self.transform:
             image1, image2 = self.transform(image1), self.transform(image2)
+
+        uid = self.samples[idx]["category"] + "-" + self.samples[idx]["sequence"] + "-" + self.samples[idx]["frame_id"]
+        meta = (torch.tensor(self.categories.index(category)), uid)
         if not self.single:
-            return (image1, image2), torch.tensor(self.categories.index(category))
+            return (image1, image2), meta
         else:
-            return image1, torch.tensor(self.categories.index(category))
+            return image1, meta
 
     def __len__(self):
         return len(self.samples)

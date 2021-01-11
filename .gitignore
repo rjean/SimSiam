@@ -8,4 +8,6 @@ data/
 Data/
 runs/
 datasets/objectron_96x96/
+runs.old/
+*.npy
 

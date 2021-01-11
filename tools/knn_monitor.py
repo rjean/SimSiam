@@ -2,6 +2,7 @@ from tqdm import tqdm
 import torch.nn.functional as F 
 import torch
 from torch.cuda.amp import autocast
+import numpy as np
 
 # code copied from https://colab.research.google.com/github/facebookresearch/moco/blob/colab-notebook/colab/moco_cifar10_demo.ipynb#scrollTo=RI1Y8bSImD7N
 # test using a knn monitor
@@ -13,6 +14,11 @@ def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, 
     with torch.no_grad():
         # generate feature bank
         for data, target in tqdm(memory_data_loader, desc='Feature extracting', leave=False, disable=hide_progress):
+            meta = None
+            if type(target) is list: #Will not crash if additional target information is provided.
+                meta = target[1:]
+                target=target[0] #Class will always be the first element of the tuple.
+                
             with autocast():
                 feature = net(data.cuda(non_blocking=True))
                 feature = F.normalize(feature, dim=1)
@@ -28,7 +34,14 @@ def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, 
 
         test_embeddings = []
         test_targets = []
+        test_sequence_ids = []
+        meta = None
+        #all_metas = []
         for data, target in test_bar:
+            if type(target) is list: #Will not crash if additional target information is provided.
+                meta = target[1:]
+                target=target[0] #Class will always be the first element of the tuple.
+                
             with autocast():
                 data, target = data.cuda(non_blocking=True), target.cuda(non_blocking=True)
                 feature = net(data)
@@ -44,12 +57,25 @@ def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, 
                 
             test_embeddings.append(feature)
             test_targets+=list(target.cpu().numpy())
+
+            if meta is not None:
+                test_sequence_ids+=meta[0]
         if writer:
             test_embeddings = torch.vstack(test_embeddings)
             test_target_labels = []
             for target in test_targets:
                 test_target_labels.append(test_data_loader.dataset.classes[target])
-            writer.add_embedding(test_embeddings, metadata=test_target_labels, tag="test", global_step=epoch)
+            writer.add_embedding(test_embeddings, metadata=test_target_labels, tag="test_categorical", global_step=epoch)
+
+            if len(test_sequence_ids)>0:
+                writer.add_embedding(test_embeddings, metadata=test_sequence_ids, tag="test_sequence", global_step=epoch)
+
+            #Small copy for Jupyter Notebooks
+            np.save(f"embeddings_epoch_{epoch}.npy",test_embeddings.cpu().numpy())
+
+            info = np.vstack([np.array(test_targets),np.array(test_sequence_ids)])
+            np.save(f"info_epoch_.npy", info)
+
 
     return total_top1 / total_num * 100
 

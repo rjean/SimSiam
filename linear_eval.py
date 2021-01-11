@@ -89,7 +89,8 @@ def main(args):
         
         
         for idx, (images, labels) in enumerate(local_progress):
-
+            if type(labels) is list: #Support for additional metadata
+                labels=labels[0]
             classifier.zero_grad()
             with torch.no_grad():
                 feature = model(images.to(args.device))
@@ -113,6 +114,8 @@ def main(args):
         acc_meter.reset()
         for idx, (images, labels) in enumerate(local_progress):
             with torch.no_grad():
+                if type(labels) is list: #Support for additional metadata
+                    labels=labels[0]
                 feature = model(images.to(args.device))
                 preds = classifier(feature).argmax(dim=1)
                 correct = (preds == labels.to(args.device)).sum().item()
