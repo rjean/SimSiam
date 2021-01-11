@@ -65,10 +65,12 @@ def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, 
             test_target_labels = []
             for target in test_targets:
                 test_target_labels.append(test_data_loader.dataset.classes[target])
-            writer.add_embedding(test_embeddings, metadata=test_target_labels, tag="test_categorical", global_step=epoch)
+
+            #For tensorboard, we will save only the latest embeddings in order to save space on disk.
+            writer.add_embedding(test_embeddings, metadata=test_target_labels, tag="test_categorical", global_step=0)
 
             if len(test_sequence_ids)>0:
-                writer.add_embedding(test_embeddings, metadata=test_sequence_ids, tag="test_sequence", global_step=epoch)
+                writer.add_embedding(test_embeddings, metadata=test_sequence_ids, tag="test_sequence", global_step=0)
 
             #Small copy for Jupyter Notebooks
             np.save(f"embeddings_epoch_{epoch}.npy",test_embeddings.cpu().numpy())

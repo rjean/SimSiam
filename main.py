@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F 
 import torchvision
 import numpy as np
+import shutil
 from tqdm import tqdm
 from configs import get_args
 from augmentations import get_aug
@@ -70,6 +71,8 @@ def main(device, args):
     # define model
     model_path = None
     model = get_model(args.model, args.backbone).to(device)
+
+    best_accuracy = 0
     
 
 
@@ -155,7 +158,8 @@ def main(device, args):
         writer.add_scalar("NN Accuracy/valid", accuracy, epoch)
 
         # Save checkpoint at the end of each epoch 
-        model_path = os.path.join(args.output_dir, f'{args.model}-{args.dataset}-epoch{epoch+1}.pth')
+        
+        model_path = os.path.join(args.output_dir, f'{args.model}-{args.dataset}-last.pth')
         torch.save({
             'epoch': epoch+1,
             'state_dict':model.module.state_dict(),
@@ -165,7 +169,13 @@ def main(device, args):
             'loss_meter':loss_meter,
             'plot_logger':plot_logger
         }, model_path)
+        
         print(f"Model saved to {model_path}")
+        if accuracy>best_accuracy:
+            best_accuracy = accuracy
+            best_model_path = model_path.replace("-last.pth", "-best.pth")
+            print(f"Best model so far, saved to {best_model_path}")
+            shutil.copy(model_path, best_model_path)
         #pr.disable()
         #pr.print_stats("cumulative")
         #break
