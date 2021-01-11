@@ -35,18 +35,18 @@ def main(device, args):
     }
     
     train_dataset=get_dataset(
-            transform=get_aug(args.aug, args.image_size, True), 
+            transform=get_aug(args.aug, args.image_size, True, horizontal_flip=not args.nohflip), 
             train=True, 
             **dataset_kwargs)
 
     memory_dataset=get_dataset(
-            transform=get_aug(args.aug, args.image_size, False, train_classifier=False), 
+            transform=get_aug(args.aug, args.image_size, False, train_classifier=False, horizontal_flip=not args.nohflip), 
             train=True,
             only_train=True, #Required for STL10
             **dataset_kwargs)
 
     test_dataset = get_dataset( 
-            transform=get_aug(args.model, args.image_size, False, train_classifier=False), 
+            transform=get_aug(args.aug, args.image_size, False, train_classifier=False, horizontal_flip=not args.nohflip), 
             train=False,
             **dataset_kwargs)
 

@@ -4,8 +4,9 @@ from .byol_aug import BYOL_transform
 from .simclr_aug import SimCLRTransform
 from .objectron_aug import ObjectronTransform
 
-def get_aug(name, image_size, train, train_classifier=True):
-
+def get_aug(name, image_size, train, train_classifier=True, horizontal_flip=True):
+    if name != 'objectron_aug' and not horizontal_flip:
+        raise ValueError("Disabling Horizontal Flips is only supported for Objectron Training")
     if train==True:
         if name == 'simsiam':
             augmentation = SimSiamTransform(image_size)
@@ -16,7 +17,7 @@ def get_aug(name, image_size, train, train_classifier=True):
         elif name == 'objectron':
             augmentation = ObjectronTransform(image_size)
         elif name == 'objectron_aug':
-            augmentation = ObjectronTransform(image_size,simsiam_transform=True)
+            augmentation = ObjectronTransform(image_size,simsiam_transform=True, horizontal_flip=horizontal_flip)
         else:
             raise NotImplementedError
     elif train==False:

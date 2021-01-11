@@ -26,6 +26,7 @@ def get_args():
     parser.add_argument('--debug', action='store_true')
     # training specific args
     parser.add_argument("--dry_run", action="store_true", help="Run pipeline without iterating.")
+    parser.add_argument("--nohflip", action="store_true", help="Disable horizontal flips on Objectron training")
     parser.add_argument('--dataset', type=str, default='cifar10', help='choose from random, stl10, mnist, cifar10, cifar100, imagenet')
     parser.add_argument('--download', action='store_true', help="if can't find dataset, download from web")
     parser.add_argument('--image_size', type=int, default=224)

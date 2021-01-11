@@ -8,7 +8,7 @@ except ImportError:
 imagenet_mean_std = [[0.485, 0.456, 0.406],[0.229, 0.224, 0.225]]
 
 class ObjectronTransform():
-    def __init__(self, image_size, mean_std=imagenet_mean_std, simsiam_transform=False, train=True):
+    def __init__(self, image_size, mean_std=imagenet_mean_std, simsiam_transform=False, train=True, horizontal_flip=True):
         image_size = 224 if image_size is None else image_size # by default simsiam use image size 224
         p_blur = 0.5 if image_size > 32 else 0 
         # the paper didn't specify this, feel free to change this value
@@ -18,15 +18,18 @@ class ObjectronTransform():
 
         #torchvision.transforms.Pad(padding, fill=0, padding_mode='constant')
         if simsiam_transform:
-            self.transform = T.Compose([
+            hflip = T.RandomHorizontalFlip()
+            transform_list = [
                 T.RandomResizedCrop(image_size, scale=(0.2, 1.0)),
-                T.RandomHorizontalFlip(),
+                hflip,
                 T.RandomApply([T.ColorJitter(0.4,0.4,0.4,0.1)], p=0.8),
                 T.RandomGrayscale(p=0.2),
                 T.RandomApply([T.GaussianBlur(kernel_size=image_size//20*2+1, sigma=(0.1, 2.0))], p=p_blur),
                 T.ToTensor(),
-                T.Normalize(*mean_std)
-            ])
+                T.Normalize(*mean_std)]
+            if not horizontal_flip:
+                transform_list.remove(hflip) 
+            self.transform = T.Compose(transform_list)
         else:
             #No transforms, except normalisation.
             self.transform = T.Compose([
