@@ -73,7 +73,22 @@ def main(device, args):
     model = get_model(args.model, args.backbone).to(device)
 
     best_accuracy = 0
-    
+
+    # define optimizer
+    optimizer = get_optimizer(
+        args.optimizer, model, 
+        lr=args.base_lr, 
+        momentum=args.momentum,
+        weight_decay=args.weight_decay)
+
+
+    lr_scheduler = LR_Scheduler(
+        optimizer,
+        args.warmup_epochs, args.warmup_lr, 
+        args.num_epochs, args.base_lr, args.final_lr, 
+        len(train_loader),
+        constant_predictor_lr=True # see the end of section 4.2 predictor
+    ) 
 
 
     #model_folder = os.path.join(args.output_dir, f'{args.model}-{args.dataset}-epoch{epoch+1}.pth')
@@ -84,9 +99,11 @@ def main(device, args):
         if len(list_of_files)>0:
             model_path = max(list_of_files, key=os.path.getctime)
             print(f"Loading model parameters from {model_path}")
-            model.load_state_dict(torch.load(model_path)['state_dict'])
+            saved = torch.load(model_path)
+            model.load_state_dict(saved['state_dict'])
+            lr_scheduler = saved['lr_scheduler']
             #Parse the epoch number from the filename.
-            load_epoch = int(os.path.basename(model_path).split("epoch")[-1].split(".")[-2])
+            load_epoch = saved["epoch"]
             model.eval()
         else:
             print("No checkpoint found for this experiment. Starting from scratch")
@@ -97,20 +114,8 @@ def main(device, args):
     model = torch.nn.DataParallel(model)
     if torch.cuda.device_count() > 1: model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
     
-    # define optimizer
-    optimizer = get_optimizer(
-        args.optimizer, model, 
-        lr=args.base_lr, 
-        momentum=args.momentum,
-        weight_decay=args.weight_decay)
 
-    lr_scheduler = LR_Scheduler(
-        optimizer,
-        args.warmup_epochs, args.warmup_lr, 
-        args.num_epochs, args.base_lr, args.final_lr, 
-        len(train_loader),
-        constant_predictor_lr=True # see the end of section 4.2 predictor
-    )
+
 
     loss_meter = AverageMeter(name='Loss')
     plot_logger = PlotLogger(params=['lr', 'loss', 'accuracy'])
@@ -118,6 +123,12 @@ def main(device, args):
 
     # Start training
     global_progress = tqdm(range(load_epoch, args.stop_at_epoch), desc=f'Training')
+
+    skip_training = False
+    if len(global_progress)==0:
+        print(f"Training already of {load_epoch} epochs complete. Proceding to evaluation.")
+        global_progress=tqdm([load_epoch])
+        skip_training=True
     #pr = cProfile.Profile()
     
     for epoch in global_progress:
@@ -129,6 +140,8 @@ def main(device, args):
         local_progress=tqdm(train_loader, desc=f'Epoch {epoch}/{args.num_epochs}', disable=args.hide_progress)
         lr=0
         for idx, ((images1, images2), labels) in enumerate(local_progress):
+            if skip_training:
+                break #Training is completed. Skip to evaluation.
             if idx==0:
                 grid1 = torchvision.utils.make_grid(images1, normalize=True)
                 grid2 = torchvision.utils.make_grid(images2, normalize=True)

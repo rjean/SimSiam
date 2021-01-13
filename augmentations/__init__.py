@@ -2,7 +2,7 @@ from .simsiam_aug import SimSiamTransform
 from .eval_aug import Transform_single
 from .byol_aug import BYOL_transform
 from .simclr_aug import SimCLRTransform
-from .objectron_aug import ObjectronTransform
+from .objectron_aug import ObjectronTransform, ObjectronVideoTransform
 
 def get_aug(name, image_size, train, train_classifier=True, horizontal_flip=True):
     if name != 'objectron_aug' and not horizontal_flip:
@@ -18,6 +18,8 @@ def get_aug(name, image_size, train, train_classifier=True, horizontal_flip=True
             augmentation = ObjectronTransform(image_size)
         elif name == 'objectron_aug':
             augmentation = ObjectronTransform(image_size,simsiam_transform=True, horizontal_flip=horizontal_flip)
+        elif name =='objectron_video':
+            augmentation = ObjectronVideoTransform(image_size)
         else:
             raise NotImplementedError
     elif train==False:

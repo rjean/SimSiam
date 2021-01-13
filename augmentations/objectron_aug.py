@@ -39,3 +39,26 @@ class ObjectronTransform():
 
     def __call__(self, x):
         return self.transform(x) 
+
+
+class ObjectronVideoTransform():
+    def __init__(self, image_size, mean_std=imagenet_mean_std, train=True):
+        image_size = 224 if image_size is None else image_size # by default simsiam use image size 224
+        p_blur = 0.5 if image_size > 32 else 0 
+        # the paper didn't specify this, feel free to change this value
+        # I use the setting from simclr which is 50% chance applying the gaussian blur
+        # the 32 is prepared for cifar training where they disabled gaussian blur
+
+        transform_list = [
+            T.RandomApply([T.ColorJitter(0.4,0.4,0.4,0.1)], p=0.8),
+            T.RandomGrayscale(p=0.2),
+            T.RandomApply([T.GaussianBlur(kernel_size=image_size//20*2+1, sigma=(0.1, 2.0))], p=p_blur),
+            T.ToTensor(),
+            T.Normalize(*mean_std),
+            T.RandomErasing(), #T.RandomResizedCrop(image_size, scale=(0.2, 1.0)),
+            ]
+        self.transform = T.Compose(transform_list)
+
+
+    def __call__(self, x):
+        return self.transform(x) 
