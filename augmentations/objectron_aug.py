@@ -1,4 +1,5 @@
 import torchvision.transforms as T
+from torchvision.transforms.transforms import RandomResizedCrop, Scale
 try:
     from torchvision.transforms import GaussianBlur
 except ImportError:
@@ -51,6 +52,7 @@ class ObjectronVideoTransform():
 
         transform_list = [
             T.RandomApply([T.ColorJitter(0.4,0.4,0.4,0.1)], p=0.8),
+            T.RandomResizedCrop(image_size, scale=(0.8,1), ratio=(0.95,1.1)), #Small variation.
             T.RandomGrayscale(p=0.2),
             T.RandomApply([T.GaussianBlur(kernel_size=image_size//20*2+1, sigma=(0.1, 2.0))], p=p_blur),
             T.ToTensor(),

@@ -3,6 +3,7 @@ import glob
 import os 
 from PIL import Image
 import random
+import re
 
 #https://note.nkmk.me/en/python-pillow-add-margin-expand-canvas/
 def expand2square(pil_img, background_color=0):
@@ -63,7 +64,7 @@ class ObjectronDataset(torch.utils.data.Dataset):
         basenames = self._get_basenames(category, split)
         sequences = {}
         for basename in basenames:
-            sequence_id = "_".join([basename.split("_")[-3],basename.split("_")[-2]])
+            sequence_id = basename.split(".")[0] #"_".join([basename.split("_")[-3],basename.split("_")[-2],basename.split("_")[-1]])
             if sequence_id in sequences:
                 sequences[sequence_id].append(basename)
             else:
@@ -78,7 +79,12 @@ class ObjectronDataset(torch.utils.data.Dataset):
                 if len(self.sequences_by_categories[category][sequence])>5:
                     self.number_of_pictures+=len(self.sequences_by_categories[category][sequence])
                     for basename in self.sequences_by_categories[category][sequence]:
-                        frame_id = basename.split(".")[-2].split("_")[-1]
+                        #frame_id = basename.split(".")[-2].split("_")[-1]
+                        m = re.search("batch-(\d+)_(\d+)_(\d+).(\d+)\.jpg", basename)
+                        batch_number = int(m[1])
+                        sequence_number = int(m[2])
+                        object_id = int(m[3])
+                        frame_id = int(m[4])
                         sample = {"category": category, "sequence": sequence, 
                                   "basename": basename, "split": split, "frame_id": frame_id}
                         samples.append(sample)
@@ -138,7 +144,7 @@ class ObjectronDataset(torch.utils.data.Dataset):
         if self.transform:
             image1, image2 = self.transform(image1), self.transform(image2)
 
-        uid = self.samples[idx]["category"] + "-" + self.samples[idx]["sequence"] + "-" + self.samples[idx]["frame_id"]
+        uid = self.samples[idx]["category"] + "-" + self.samples[idx]["sequence"] + "-" + str(self.samples[idx]["frame_id"])
         meta = (torch.tensor(self.categories.index(category)), uid)
         if not self.single:
             return (image1, image2), meta

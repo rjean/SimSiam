@@ -162,7 +162,7 @@ def main(device, args):
             if args.dry_run:
                 print("Warning: Dry run mode enable. No iteration will be performed.")
                 break #Do not iterrate for dry-running.
-        accuracy = knn_monitor(model.module.backbone, memory_loader, test_loader, epoch, k=200, hide_progress=args.hide_progress, writer=writer)
+        accuracy = knn_monitor(model.module.backbone, memory_loader, test_loader, epoch, k=200, hide_progress=args.hide_progress, writer=writer, output_dir= args.output_dir)
         global_progress.set_postfix({"epoch":epoch, "loss_avg":loss_meter.avg, "accuracy":accuracy})
         plot_logger.update({'accuracy':accuracy})
         plot_logger.save(os.path.join(args.output_dir, 'logger.svg'))
