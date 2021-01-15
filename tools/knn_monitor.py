@@ -6,13 +6,15 @@ import numpy as np
 
 # code copied from https://colab.research.google.com/github/facebookresearch/moco/blob/colab-notebook/colab/moco_cifar10_demo.ipynb#scrollTo=RI1Y8bSImD7N
 # test using a knn monitor
-def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, hide_progress=False, writer=None, output_dir="."):
+def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, hide_progress=False, writer=None, output_dir=".", subset_size=0.05):
     net.eval()
     classes = len(memory_data_loader.dataset.classes)
     total_top1, total_top5, total_num, feature_bank = 0.0, 0.0, 0, []
     target_bank=[]
     with torch.no_grad():
         # generate feature bank
+        visited = 0
+        stop_at = int(subset_size*len(memory_data_loader.dataset))
         for data, target in tqdm(memory_data_loader, desc='Feature extracting', leave=False, disable=hide_progress):
             meta = None
             if type(target) is list: #Will not crash if additional target information is provided.
@@ -23,10 +25,13 @@ def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, 
                 feature = net(data.cuda(non_blocking=True))
                 feature = F.normalize(feature, dim=1)
             feature_bank.append(feature)
-            target_bank.append(target)
+            target_bank.append(target.cuda())
+            visited+=len(target)
+            if visited > stop_at:
+                break
         # [D, N]
         feature_bank = torch.cat(feature_bank, dim=0).t().contiguous()
-        feature_labels = torch.cat(target_bank, dim=0).t().contiguous().cuda()
+        feature_labels = torch.cat(target_bank, dim=0).t().contiguous()
         # [N]
         #feature_labels = torch.tensor(memory_data_loader.dataset.targets, device=feature_bank.device)
         # loop test data to predict the label by weighted knn search
@@ -73,10 +78,10 @@ def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, 
                 writer.add_embedding(test_embeddings, metadata=test_sequence_ids, tag="test_sequence", global_step=0)
 
             #Small copy for Jupyter Notebooks
-            np.save(f"{outputdir}/embeddings_epoch_{epoch}.npy",test_embeddings.cpu().numpy())
+            np.save(f"{output_dir}/embeddings_epoch_{epoch}.npy",test_embeddings.cpu().numpy())
 
             info = np.vstack([np.array(test_targets),np.array(test_sequence_ids)])
-            np.save(f"{outputdir}/info_epoch_.npy", info)
+            np.save(f"{output_dir}/info_epoch_.npy", info)
 
 
     return total_top1 / total_num * 100

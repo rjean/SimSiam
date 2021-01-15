@@ -57,7 +57,7 @@ def main(device, args):
     )
     memory_loader = torch.utils.data.DataLoader(
         dataset=memory_dataset,
-        shuffle=False,
+        shuffle=True,
         **dataloader_kwargs
     )
 
