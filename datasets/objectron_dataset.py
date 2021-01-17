@@ -4,6 +4,9 @@ import os
 from PIL import Image
 import random
 import re
+from natsort import natsorted
+#from joblib import Parallel, delayed
+import multiprocessing
 
 #https://note.nkmk.me/en/python-pillow-add-margin-expand-canvas/
 def expand2square(pil_img, background_color=0):
@@ -21,8 +24,10 @@ def expand2square(pil_img, background_color=0):
 
 
 class ObjectronDataset(torch.utils.data.Dataset):
-    def __init__(self, root="datasets/objectron_96x96", split="train", train=True, single=False, transform=None, debug_subset_size=None, return_indices = False):
+    def __init__(self, root="datasets/objectron_96x96", split="train", train=True, single=False, transform=None, debug_subset_size=None, return_indices = False, objectron_pair="uniform"):
         self.root=root
+        self.pairing = objectron_pair #Pairing strategy: uniform, next
+        print(f"Pairing mode: {objectron_pair}")
         self.split = split
         self.transform = transform
         self.size = None
@@ -69,6 +74,8 @@ class ObjectronDataset(torch.utils.data.Dataset):
                 sequences[sequence_id].append(basename)
             else:
                 sequences[sequence_id] = [basename]
+        for sequence_id in sequences: #Sort sequences
+            sequences[sequence_id] = natsorted(sequences[sequence_id]) 
         return sequences
 
     def _load_samples(self, split="train", debug=True):
@@ -102,7 +109,19 @@ class ObjectronDataset(torch.utils.data.Dataset):
         category = sample["category"]
         image_path1 = f"{root}/{split}/{category}/{basename}"
         for i in range(0,30):
-            other_basename = random.sample(self.sequences_by_categories[category][sequence], 1)[0]
+            if self.pairing=="uniform":
+                other_basename = random.sample(self.sequences_by_categories[category][sequence], 1)[0]
+            elif self.pairing=="next":
+                current_index = self.sequences_by_categories[category][sequence].index(basename)
+                if (current_index+1) < len(self.sequences_by_categories[category][sequence]):
+                    next_index=current_index+1
+                else:
+                    next_index=current_index-1 #For the last picture, give the previous frame instead of the next.
+                other_basename = self.sequences_by_categories[category][sequence][next_index]
+            else:
+                raise ValueError(f"Unsupported pairing scheme: {self.pairing}")
+                #x=x+1
+                #other_basename = self.sequences_by_categories[category][sequence]
             if other_basename!=basename:
                 image_path2 = f"{root}/{split}/{category}/{other_basename}"
                 return image_path1, image_path2, category

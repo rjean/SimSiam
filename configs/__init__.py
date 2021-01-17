@@ -25,6 +25,7 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--debug', action='store_true')
     # training specific args
+    parser.add_argument("--objectron_pair", type=str, default="uniform", help="Objectron pairing scheme.")
     parser.add_argument("--dry_run", action="store_true", help="Run pipeline without iterating.")
     parser.add_argument("--nohflip", action="store_true", help="Disable horizontal flips on Objectron training")
     parser.add_argument('--dataset', type=str, default='cifar10', help='choose from random, stl10, mnist, cifar10, cifar100, imagenet')
