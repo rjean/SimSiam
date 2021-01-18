@@ -6,7 +6,7 @@ import numpy as np
 
 # code copied from https://colab.research.google.com/github/facebookresearch/moco/blob/colab-notebook/colab/moco_cifar10_demo.ipynb#scrollTo=RI1Y8bSImD7N
 # test using a knn monitor
-def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, hide_progress=False, writer=None, output_dir=".", subset_size=1):
+def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, hide_progress=False, writer=None, output_dir=".", subset_size=0.05):
     net.eval()
     classes = len(memory_data_loader.dataset.classes)
     total_top1, total_top5, total_num, feature_bank = 0.0, 0.0, 0, []
@@ -33,7 +33,7 @@ def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, 
                 feature = net(data.cuda(non_blocking=True))
                 feature = F.normalize(feature, dim=1)
             #feature_bank_new[batch_num*memory_data_loader.batch_size]
-            feature_bank_new[:,base:base+len(data)]=feature
+            feature_bank_new[:,base:base+len(data)]=feature.t()
             feature_labels_new[base:base+len(data)]=target
             #feature_bank.append(feature)
             #target_bank.append(target.cuda())
