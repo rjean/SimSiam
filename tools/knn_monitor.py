@@ -6,7 +6,7 @@ import numpy as np
 
 # code copied from https://colab.research.google.com/github/facebookresearch/moco/blob/colab-notebook/colab/moco_cifar10_demo.ipynb#scrollTo=RI1Y8bSImD7N
 # test using a knn monitor
-def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, hide_progress=False, writer=None, output_dir=".", subset_size=0.05):
+def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, hide_progress=False, writer=None, output_dir=".", subset_size=1):
     net.eval()
     classes = len(memory_data_loader.dataset.classes)
     total_top1, total_top5, total_num, feature_bank = 0.0, 0.0, 0, []
@@ -100,7 +100,7 @@ def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, 
 
             #Train set
 
-            np.save(f"{output_dir}/training_embeddings.npy",test_embeddings.cpu().numpy())
+            np.save(f"{output_dir}/training_embeddings.npy",feature_bank.cpu().numpy())
             train_info = np.vstack([feature_labels.cpu().numpy(),np.array(train_sequence_ids)])
             np.save(f"{output_dir}/train_info.npy", train_info)
 
