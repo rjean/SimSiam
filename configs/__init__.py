@@ -5,7 +5,7 @@ import torch
 import numpy as np
 import torch
 import random
-
+import multiprocessing
 
 
 def set_deterministic(seed):
@@ -32,7 +32,7 @@ def get_args():
     parser.add_argument('--dataset', type=str, default='cifar10', help='choose from random, stl10, mnist, cifar10, cifar100, imagenet')
     parser.add_argument('--download', action='store_true', help="if can't find dataset, download from web")
     parser.add_argument('--image_size', type=int, default=224)
-    parser.add_argument('--num_workers', type=int, default=6)
+    parser.add_argument('--num_workers', type=int, default=multiprocessing.cpu_count())
     parser.add_argument('--data_dir', type=str, default=os.getenv('DATA'))
     parser.add_argument('--output_dir', type=str, default=os.getenv('OUTPUT'))
     parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu')
