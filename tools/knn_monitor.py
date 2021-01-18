@@ -6,7 +6,7 @@ import numpy as np
 
 # code copied from https://colab.research.google.com/github/facebookresearch/moco/blob/colab-notebook/colab/moco_cifar10_demo.ipynb#scrollTo=RI1Y8bSImD7N
 # test using a knn monitor
-def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, hide_progress=False, writer=None, output_dir=".", subset_size=0.25):
+def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, hide_progress=False, writer=None, output_dir=".", subset_size=1):
     net.eval()
     classes = len(memory_data_loader.dataset.classes)
     total_top1, total_top5, total_num, feature_bank = 0.0, 0.0, 0, []
@@ -14,9 +14,17 @@ def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, 
     with torch.no_grad():
         # generate feature bank
         visited = 0
-        stop_at = int(subset_size*len(memory_data_loader.dataset))
+        max_batch = int(subset_size*len(memory_data_loader.dataset)/memory_data_loader.batch_size)
+        #if stop_at > len(memory_data_loader.dataset):
+        #    stop_at = memory_data_loader.dataset
+        #len(memory_data_loader.dataset) = torch.zeros()
+        feature_bank_new = torch.zeros((net.output_dim,max_batch*memory_data_loader.batch_size)).cuda()
+        feature_labels_new = torch.zeros(max_batch*memory_data_loader.batch_size, dtype=torch.int64).cuda()
+        batch_num = 0
+        train_sequence_ids = []
         for data, target in tqdm(memory_data_loader, desc='Feature extracting', leave=False, disable=hide_progress):
             meta = None
+            base = batch_num*memory_data_loader.batch_size
             if type(target) is list: #Will not crash if additional target information is provided.
                 meta = target[1:]
                 target=target[0] #Class will always be the first element of the tuple.
@@ -24,14 +32,22 @@ def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, 
             with autocast():
                 feature = net(data.cuda(non_blocking=True))
                 feature = F.normalize(feature, dim=1)
-            feature_bank.append(feature)
-            target_bank.append(target.cuda())
+            #feature_bank_new[batch_num*memory_data_loader.batch_size]
+            feature_bank_new[:,base:base+len(data)]=feature
+            feature_labels_new[base:base+len(data)]=target
+            #feature_bank.append(feature)
+            #target_bank.append(target.cuda())
             visited+=len(target)
-            if visited > stop_at:
+            batch_num+=1
+            if meta is not None:
+                train_sequence_ids+=meta[0]
+            if batch_num >= max_batch:
                 break
         # [D, N]
-        feature_bank = torch.cat(feature_bank, dim=0).t().contiguous()
-        feature_labels = torch.cat(target_bank, dim=0).t().contiguous()
+        #feature_bank = torch.cat(feature_bank, dim=0).t().contiguous()
+        #feature_labels = torch.cat(target_bank, dim=0).t().contiguous()
+        feature_bank = feature_bank_new
+        feature_labels = feature_labels_new
         # [N]
         #feature_labels = torch.tensor(memory_data_loader.dataset.targets, device=feature_bank.device)
         # loop test data to predict the label by weighted knn search
@@ -79,9 +95,14 @@ def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, 
 
             #Small copy for Jupyter Notebooks
             np.save(f"{output_dir}/embeddings.npy",test_embeddings.cpu().numpy())
-
             info = np.vstack([np.array(test_targets),np.array(test_sequence_ids)])
             np.save(f"{output_dir}/info.npy", info)
+
+            #Train set
+
+            np.save(f"{output_dir}/training_embeddings.npy",test_embeddings.cpu().numpy())
+            train_info = np.vstack([feature_labels.cpu().numpy(),np.array(train_sequence_ids)])
+            np.save(f"{output_dir}/train_info.npy", train_info)
 
 
     return total_top1 / total_num * 100
