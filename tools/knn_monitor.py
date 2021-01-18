@@ -78,10 +78,10 @@ def knn_monitor(net, memory_data_loader, test_data_loader, epoch, k=200, t=0.1, 
                 writer.add_embedding(test_embeddings, metadata=test_sequence_ids, tag="test_sequence", global_step=0)
 
             #Small copy for Jupyter Notebooks
-            np.save(f"{output_dir}/embeddings_epoch_{epoch}.npy",test_embeddings.cpu().numpy())
+            np.save(f"{output_dir}/embeddings.npy",test_embeddings.cpu().numpy())
 
             info = np.vstack([np.array(test_targets),np.array(test_sequence_ids)])
-            np.save(f"{output_dir}/info_epoch_.npy", info)
+            np.save(f"{output_dir}/info.npy", info)
 
 
     return total_top1 / total_num * 100
