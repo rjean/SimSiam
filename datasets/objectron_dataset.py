@@ -5,8 +5,18 @@ from PIL import Image
 import random
 import re
 from natsort import natsorted
-#from joblib import Parallel, delayed
-import multiprocessing
+from deco import concurrent, synchronized
+
+@concurrent
+def natsorted_p(data):
+    return natsorted(data)
+
+@synchronized
+def natsorted_dict(dictionnary):
+    for key in dictionnary:
+        dictionnary[key] = natsorted_p(dictionnary[key])
+    return dictionnary
+
 
 #https://note.nkmk.me/en/python-pillow-add-margin-expand-canvas/
 def expand2square(pil_img, background_color=0):
@@ -24,7 +34,8 @@ def expand2square(pil_img, background_color=0):
 
 
 class ObjectronDataset(torch.utils.data.Dataset):
-    def __init__(self, root="datasets/objectron_96x96", split="train", train=True, single=False, transform=None, debug_subset_size=None, return_indices = False, objectron_pair="uniform"):
+    def __init__(self, root="datasets/objectron_96x96", split="train", train=True, single=False, transform=None, 
+                 debug_subset_size=None, return_indices = False, objectron_pair="uniform", objectron_exclude=[]):
         self.root=root
         self.pairing = objectron_pair #Pairing strategy: uniform, next
         print(f"Pairing mode: {objectron_pair}")
@@ -41,6 +52,9 @@ class ObjectronDataset(torch.utils.data.Dataset):
         self.categories = glob.glob(f"{root}/{split}/*/")
         self.categories = [x.split("/")[-2] for x in self.categories]
         self.categories.sort() #To have the same order as in the ImageFolder dataset.
+        for exluded in objectron_exclude:
+            self.categories.remove(exluded)
+            print(f"Excluding {exluded} from dataset.")
         self.classes = self.categories
 
         #self.categories_list = []
@@ -74,8 +88,11 @@ class ObjectronDataset(torch.utils.data.Dataset):
                 sequences[sequence_id].append(basename)
             else:
                 sequences[sequence_id] = [basename]
-        for sequence_id in sequences: #Sort sequences
-            sequences[sequence_id] = natsorted(sequences[sequence_id]) 
+
+        sequences = natsorted_dict(sequences)
+        #sequences = natsorted_dict(sequences)
+        #for sequence_id in sequences: #Sort sequences
+        #    sequences[sequence_id] = natsorted(sequences[sequence_id]) 
         return sequences
 
     def _load_samples(self, split="train", debug=True):

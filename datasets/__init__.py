@@ -4,7 +4,7 @@ from .random_dataset import RandomDataset
 from .objectron_dataset import ObjectronDataset
 
 
-def get_dataset(dataset, data_dir, transform, train=True, download=False, debug_subset_size=None, only_train=False, objectron_pair="uniform"):
+def get_dataset(dataset, data_dir, transform, train=True, download=False, debug_subset_size=None, only_train=False, objectron_pair="uniform", objectron_exclude=[]):
     if dataset == 'mnist':
         dataset = torchvision.datasets.MNIST(data_dir, train=train, transform=transform, download=download)
     elif dataset == 'stl10':
@@ -29,13 +29,16 @@ def get_dataset(dataset, data_dir, transform, train=True, download=False, debug_
         split = "train" #default
         if only_train: #For the memory dataloader
             #dataset  = torchvision.datasets.ImageFolder(f"{data_dir}/{split}", transform=transform)
-            dataset  = ObjectronDataset(root=data_dir, transform=transform, split="train", single=True,objectron_pair=objectron_pair)
+            dataset  = ObjectronDataset(root=data_dir, transform=transform, split="train",
+                single=True,objectron_pair=objectron_pair, objectron_exclude=objectron_exclude)
             return dataset
         if not train:
             #split="valid"
-            dataset  = ObjectronDataset(root=data_dir, transform=transform, split="valid", single=True,objectron_pair=objectron_pair)
+            dataset  = ObjectronDataset(root=data_dir, transform=transform, split="valid", 
+                single=True,objectron_pair=objectron_pair, objectron_exclude=objectron_exclude)
         else:
-            dataset = ObjectronDataset(root=data_dir, transform=transform, split="train", objectron_pair=objectron_pair)
+            dataset = ObjectronDataset(root=data_dir, transform=transform, split="train", 
+                objectron_pair=objectron_pair, objectron_exclude=objectron_exclude)
     else:
         raise NotImplementedError
     if debug_subset_size is not None:

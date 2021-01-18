@@ -38,6 +38,7 @@ def main(device, args):
             transform=get_aug(args.aug, args.image_size, True, horizontal_flip=not args.nohflip), 
             train=True, 
             objectron_pair=args.objectron_pair,
+            objectron_exclude=args.objectron_exclude,
             **dataset_kwargs)
 
     memory_dataset=get_dataset(
@@ -45,12 +46,14 @@ def main(device, args):
             train=True,
             only_train=True, #Required for STL10
             objectron_pair=args.objectron_pair,
+            #objectron_exclude=args.objectron_exclude,
             **dataset_kwargs)
 
     test_dataset = get_dataset( 
             transform=get_aug(args.aug, args.image_size, False, train_classifier=False, horizontal_flip=not args.nohflip), 
             train=False,
             objectron_pair=args.objectron_pair,
+            #objectron_exclude=args.objectron_exclude,
             **dataset_kwargs)
 
     train_loader = torch.utils.data.DataLoader(
