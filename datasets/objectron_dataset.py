@@ -1,11 +1,12 @@
 import torch
 import glob
 import os 
-from PIL import Image
+from PIL import Image, ImageOps
 import random
 import re
 from natsort import natsorted
 from deco import concurrent, synchronized
+import numpy as np
 
 @concurrent
 def natsorted_p(data):
@@ -35,7 +36,8 @@ def expand2square(pil_img, background_color=0):
 
 class ObjectronDataset(torch.utils.data.Dataset):
     def __init__(self, root="datasets/objectron_96x96", split="train", train=True, single=False, transform=None, 
-                 debug_subset_size=None, return_indices = False, objectron_pair="uniform", objectron_exclude=[]):
+                 debug_subset_size=None, return_indices = False, objectron_pair="uniform", objectron_exclude=[],
+                 enable_cache=False, horizontal_flip=True):
         self.root=root
         self.pairing = objectron_pair #Pairing strategy: uniform, next
         print(f"Pairing mode: {objectron_pair}")
@@ -44,6 +46,10 @@ class ObjectronDataset(torch.utils.data.Dataset):
         self.size = None
         self.single = single
         self.return_indices = return_indices
+        self.enable_cache = enable_cache
+        if "OBJECTRON_CACHE" in os.environ:
+            self.enable_cache=True
+        self.horizontal_flip = horizontal_flip
         #splits = glob.glob(f"{root}/*/")
         #if len(splits)==0:
         #    raise ValueError(f"Could not find splits in {root}")
@@ -158,10 +164,33 @@ class ObjectronDataset(torch.utils.data.Dataset):
             filename1, filename2, category = self.get_pair_of_filenames(self.samples[idx+i], self.root)
             if filename1==filename2:
                 continue #Sometimes, randomly sampling will give back the same file twice.
-            image1 =Image.open(filename1)
-            image2 =Image.open(filename2)
-            image1 = expand2square(image1)
-            image2 = expand2square(image2)
+            
+            if self.enable_cache:
+                cache_filename1=f"{filename1}.npy"
+                cache_filename2=f"{filename2}.npy"
+                if not os.path.exists(cache_filename1):
+                    image1 =Image.open(filename1)
+                    image1= expand2square(image1)
+                    np.save(cache_filename1, np.asarray(image1))
+                if not os.path.exists(cache_filename2):
+                    image2 =Image.open(filename2)
+                    image2 = expand2square(image2)
+                    np.save(cache_filename2, np.asarray(image2))
+                cached_image1=np.load(cache_filename1)
+                image1 = Image.fromarray(np.uint8(cached_image1))
+                cached_image2=np.load(cache_filename2)
+                image2 = Image.fromarray(np.uint8(cached_image2))
+                
+                
+            else:
+                image1 =Image.open(filename1)
+                image2 =Image.open(filename2)
+                image1 = expand2square(image1)
+                image2 = expand2square(image2)
+
+            if self.horizontal_flip and random.choice([True,False]):
+                image1 = ImageOps.mirror(image1)
+                image2 = ImageOps.mirror(image2)
             if image1.size != image2.size:
                 print(f"Images not of the same size: {filename1}, {filename2}, skipping!")
                 continue
