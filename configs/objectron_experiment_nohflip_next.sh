@@ -6,6 +6,7 @@ python main.py \
 --model simsiam \
 --objectron_pair next \
 --proj_layers 2 \
+--nohflip \
 --backbone resnet18 \
 --download \
 --optimizer sgd \
@@ -27,7 +28,7 @@ python main.py \
                     --optimizer str('sgd')" \
 --head_tail_accuracy \
 --hide_progress \
---output_dir outputs/objectron_96x96_experiment_nohflip/ \
+--output_dir outputs/objectron_96x96_experiment_nohflip_next/ \
 --data_dir datasets/objectron_96x96/ \
 --resume_from_last \
 # --debug
