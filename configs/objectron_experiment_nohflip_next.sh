@@ -27,7 +27,6 @@ python main.py \
                     --num_epochs int(30)
                     --optimizer str('sgd')" \
 --head_tail_accuracy \
---hide_progress \
 --output_dir outputs/objectron_96x96_experiment_nohflip_next/ \
 --data_dir datasets/objectron_96x96/ \
 --resume_from_last \
