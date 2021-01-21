@@ -30,7 +30,7 @@ def get_dataset(dataset, data_dir, transform, train=True, download=False, debug_
         if only_train: #For the memory dataloader
             #dataset  = torchvision.datasets.ImageFolder(f"{data_dir}/{split}", transform=transform)
             dataset  = ObjectronDataset(root=data_dir, transform=transform, split="train",
-                single=True,objectron_pair=objectron_pair, objectron_exclude=objectron_exclude)
+                single=True,objectron_pair=objectron_pair, objectron_exclude=objectron_exclude, memory=True)
             return dataset
         if not train:
             #split="valid"

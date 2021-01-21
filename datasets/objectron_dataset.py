@@ -35,18 +35,20 @@ def expand2square(pil_img, background_color=0):
 
 
 class ObjectronDataset(torch.utils.data.Dataset):
-    def __init__(self, root="datasets/objectron_96x96", split="train", train=True, single=False, transform=None, 
+    def __init__(self, root="datasets/objectron_96x96", split="train", memory=False, single=False, transform=None, 
                  debug_subset_size=None, return_indices = False, objectron_pair="uniform", objectron_exclude=[],
                  enable_cache=False, horizontal_flip=True):
         self.root=root
+        self.memory = memory
         self.pairing = objectron_pair #Pairing strategy: uniform, next
-        print(f"Pairing mode: {objectron_pair}")
+        print(f"Pairing mode: {objectron_pair}. Memory dataloader: {self.memory}")
         self.split = split
         self.transform = transform
         self.size = None
         self.single = single
         self.return_indices = return_indices
         self.enable_cache = enable_cache
+        
         if "OBJECTRON_CACHE" in os.environ:
             self.enable_cache=True
         self.horizontal_flip = horizontal_flip
@@ -188,9 +190,10 @@ class ObjectronDataset(torch.utils.data.Dataset):
                 image1 = expand2square(image1)
                 image2 = expand2square(image2)
 
-            if self.horizontal_flip and random.choice([True,False]):
+            if self.horizontal_flip and random.choice([True,False]) and not self.memory:
                 image1 = ImageOps.mirror(image1)
                 image2 = ImageOps.mirror(image2)
+            
             if image1.size != image2.size:
                 print(f"Images not of the same size: {filename1}, {filename2}, skipping!")
                 continue
