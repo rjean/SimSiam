@@ -32,6 +32,7 @@ def get_args():
     parser.add_argument('--dataset', type=str, default='cifar10', help='choose from random, stl10, mnist, cifar10, cifar100, imagenet')
     parser.add_argument('--download', action='store_true', help="if can't find dataset, download from web")
     parser.add_argument('--image_size', type=int, default=224)
+    parser.add_argument('--gpu_transforms', action="store_true", help="Experimental support for GPU accelerated transforms")
     parser.add_argument('--num_workers', type=int, default=multiprocessing.cpu_count())
     parser.add_argument('--data_dir', type=str, default=os.getenv('DATA'))
     parser.add_argument('--output_dir', type=str, default=os.getenv('OUTPUT'))
