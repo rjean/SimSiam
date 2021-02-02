@@ -143,11 +143,13 @@ class ObjectronDataset(torch.utils.data.Dataset):
                 else:
                     next_index=current_index-1 #For the last picture, give the previous frame instead of the next.
                 other_basename = self.sequences_by_categories[category][sequence][next_index]
+            elif self.pairing=="same":
+                other_basename=basename #Basic SimSiam setup
             else:
                 raise ValueError(f"Unsupported pairing scheme: {self.pairing}")
                 #x=x+1
                 #other_basename = self.sequences_by_categories[category][sequence]
-            if other_basename!=basename:
+            if other_basename!=basename or self.pairing=="same":
                 image_path2 = f"{root}/{split}/{category}/{other_basename}"
                 return image_path1, image_path2, category
         
@@ -164,7 +166,7 @@ class ObjectronDataset(torch.utils.data.Dataset):
         for i in range(0,5):
             #Some images are not having the right dimensions. We will simply skip them, and try the next one.
             filename1, filename2, category = self.get_pair_of_filenames(self.samples[idx+i], self.root)
-            if filename1==filename2:
+            if filename1==filename2 and self.pairing!="same":
                 continue #Sometimes, randomly sampling will give back the same file twice.
             
             if self.enable_cache:
