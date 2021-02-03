@@ -138,11 +138,16 @@ class ObjectronDataset(torch.utils.data.Dataset):
                 other_basename = random.sample(self.sequences_by_categories[category][sequence], 1)[0]
             elif self.pairing=="next":
                 current_index = self.sequences_by_categories[category][sequence].index(basename)
-                if (current_index+1) < len(self.sequences_by_categories[category][sequence]):
-                    next_index=current_index+1
+                other_basename = self.get_next_basename(current_index, category, sequence)
+            elif self.pairing=="previous":
+                current_index = self.sequences_by_categories[category][sequence].index(basename)
+                other_basename = self.get_previous_basename(current_index, category, sequence)
+            elif self.pairing=="next_and_previous":
+                current_index = self.sequences_by_categories[category][sequence].index(basename)
+                if random.choice([True,False]):
+                    other_basename = self.get_next_basename(current_index, category, sequence)
                 else:
-                    next_index=current_index-1 #For the last picture, give the previous frame instead of the next.
-                other_basename = self.sequences_by_categories[category][sequence][next_index]
+                    other_basename = self.get_previous_basename(current_index, category, sequence)
             elif self.pairing=="same":
                 other_basename=basename #Basic SimSiam setup
             else:
@@ -154,7 +159,22 @@ class ObjectronDataset(torch.utils.data.Dataset):
                 return image_path1, image_path2, category
         
         raise ValueError(f"Unable to find another different image for this batch. Please check if there is more than one sample in the sequence! {image_path1}")
-        
+
+    def get_next_basename(self, current_index, category, sequence):
+        if (current_index+1) < len(self.sequences_by_categories[category][sequence]):
+            next_index=current_index+1
+        else:
+            next_index=current_index-1 
+        next_basename = self.sequences_by_categories[category][sequence][next_index]
+        return next_basename
+    
+    def get_previous_basename(self, current_index, category, sequence):
+        if current_index==0:
+            previous_index=1 #For the first picture, give the next one instead of the previous one.
+        else:
+            previous_index=current_index-1 
+        next_basename = self.sequences_by_categories[category][sequence][previous_index]
+        return next_basename
         
     def get_sequence_uid(self, idx):
         return self.samples[idx][""]
