@@ -188,25 +188,26 @@ def main(device, args):
         writer.add_scalar("Learning rate", lr, epoch)
         writer.add_scalar("NN Accuracy/valid", accuracy, epoch)
 
-        # Save checkpoint at the end of each epoch 
-        
-        model_path = os.path.join(args.output_dir, f'{args.model}-{args.dataset}-last.pth')
-        torch.save({
-            'epoch': epoch+1,
-            'state_dict':model.module.state_dict(),
-            # 'optimizer':optimizer.state_dict(), # will double the checkpoint file size
-            'lr_scheduler':lr_scheduler,
-            'args':args,
-            'loss_meter':loss_meter,
-            'plot_logger':plot_logger
-        }, model_path)
-        
-        print(f"Model saved to {model_path}")
-        if accuracy>best_accuracy:
-            best_accuracy = accuracy
-            best_model_path = model_path.replace("-last.pth", "-best.pth")
-            print(f"Best model so far, saved to {best_model_path}")
-            shutil.copy(model_path, best_model_path)
+       
+        if not args.dry_run:
+             # Save checkpoint at the end of each epoch 
+            model_path = os.path.join(args.output_dir, f'{args.model}-{args.dataset}-last.pth')
+            torch.save({
+                'epoch': epoch+1,
+                'state_dict':model.module.state_dict(),
+                # 'optimizer':optimizer.state_dict(), # will double the checkpoint file size
+                'lr_scheduler':lr_scheduler,
+                'args':args,
+                'loss_meter':loss_meter,
+                'plot_logger':plot_logger
+            }, model_path)
+
+            print(f"Model saved to {model_path}")
+            if accuracy>best_accuracy:
+                best_accuracy = accuracy
+                best_model_path = model_path.replace("-last.pth", "-best.pth")
+                print(f"Best model so far, saved to {best_model_path}")
+                shutil.copy(model_path, best_model_path)
         #pr.disable()
         #pr.print_stats("cumulative")
         #break
