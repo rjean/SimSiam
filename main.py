@@ -17,6 +17,8 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.cuda.amp import autocast
 import cProfile
 
+from augmentations.objectron_aug import get_objectron_gpu_transform
+
 import glob
 import os
 
@@ -136,7 +138,11 @@ def main(device, args):
         global_progress=tqdm([load_epoch])
         skip_training=True
     #pr = cProfile.Profile()
-    
+    gpu_transforms = None
+    if args.gpu_transforms:
+        #If GPU transforms are selected. Experimental.
+        gpu_transforms = get_objectron_gpu_transform(args.image_size) #96x96 images.
+
     for epoch in global_progress:
         #pr.enable()
         loss_meter.reset()
@@ -146,8 +152,13 @@ def main(device, args):
         local_progress=tqdm(train_loader, desc=f'Epoch {epoch}/{args.num_epochs}', disable=args.hide_progress)
         lr=0
         for idx, ((images1, images2), labels) in enumerate(local_progress):
+            
             if skip_training:
                 break #Training is completed. Skip to evaluation.
+            images1, images2 = images1.to(device, non_blocking=True), images2.to(device, non_blocking=True)
+            if gpu_transforms is not None:
+                images1 = gpu_transforms(images1)
+                images2 = gpu_transforms(images2)
             if idx==0:
                 grid1 = torchvision.utils.make_grid(images1, normalize=True)
                 grid2 = torchvision.utils.make_grid(images2, normalize=True)
@@ -155,7 +166,8 @@ def main(device, args):
                 writer.add_image('image_pairs', both, epoch)
             with autocast():
                 model.zero_grad()
-                loss = model.forward(images1.to(device, non_blocking=True), images2.to(device, non_blocking=True))
+
+                loss = model.forward(images1, images2)
             
             loss.backward()
             optimizer.step()
@@ -176,25 +188,26 @@ def main(device, args):
         writer.add_scalar("Learning rate", lr, epoch)
         writer.add_scalar("NN Accuracy/valid", accuracy, epoch)
 
-        # Save checkpoint at the end of each epoch 
-        
-        model_path = os.path.join(args.output_dir, f'{args.model}-{args.dataset}-last.pth')
-        torch.save({
-            'epoch': epoch+1,
-            'state_dict':model.module.state_dict(),
-            # 'optimizer':optimizer.state_dict(), # will double the checkpoint file size
-            'lr_scheduler':lr_scheduler,
-            'args':args,
-            'loss_meter':loss_meter,
-            'plot_logger':plot_logger
-        }, model_path)
-        
-        print(f"Model saved to {model_path}")
-        if accuracy>best_accuracy:
-            best_accuracy = accuracy
-            best_model_path = model_path.replace("-last.pth", "-best.pth")
-            print(f"Best model so far, saved to {best_model_path}")
-            shutil.copy(model_path, best_model_path)
+       
+        if not args.dry_run:
+             # Save checkpoint at the end of each epoch 
+            model_path = os.path.join(args.output_dir, f'{args.model}-{args.dataset}-last.pth')
+            torch.save({
+                'epoch': epoch+1,
+                'state_dict':model.module.state_dict(),
+                # 'optimizer':optimizer.state_dict(), # will double the checkpoint file size
+                'lr_scheduler':lr_scheduler,
+                'args':args,
+                'loss_meter':loss_meter,
+                'plot_logger':plot_logger
+            }, model_path)
+
+            print(f"Model saved to {model_path}")
+            if accuracy>best_accuracy:
+                best_accuracy = accuracy
+                best_model_path = model_path.replace("-last.pth", "-best.pth")
+                print(f"Best model so far, saved to {best_model_path}")
+                shutil.copy(model_path, best_model_path)
         #pr.disable()
         #pr.print_stats("cumulative")
         #break

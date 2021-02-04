@@ -35,7 +35,7 @@ def get_dataset(dataset, data_dir, transform, train=True, download=False, debug_
         if not train:
             #split="valid"
             dataset  = ObjectronDataset(root=data_dir, transform=transform, split="valid", 
-                single=True,objectron_pair=objectron_pair, objectron_exclude=objectron_exclude)
+                single=True,objectron_pair=objectron_pair, objectron_exclude=objectron_exclude, memory=True)
         else:
             dataset = ObjectronDataset(root=data_dir, transform=transform, split="train", 
                 objectron_pair=objectron_pair, objectron_exclude=objectron_exclude)
