@@ -41,7 +41,11 @@ class ObjectronDataset(torch.utils.data.Dataset):
         self.root=root
         self.memory = memory
         self.pairing = objectron_pair #Pairing strategy: uniform, next
-        print(f"Pairing mode: {objectron_pair}. Memory dataloader: {self.memory}")
+        
+        if "next_" in self.pairing or "previous_" in self.pairing:
+            self.offsets = list(range(1,1+int(self.pairing.split("_")[1])))
+            self.pairing = self.pairing.split("_")[0]
+        print(f"Pairing mode: {self.pairing}. Possible offsets={self.offsets} Memory dataloader: {self.memory}")
         self.split = split
         self.transform = transform
         self.size = None
@@ -134,20 +138,21 @@ class ObjectronDataset(torch.utils.data.Dataset):
         category = sample["category"]
         image_path1 = f"{root}/{split}/{category}/{basename}"
         for i in range(0,30):
+            dist = random.sample(self.offsets,1)[0] #For next or previous pairing modes.
             if self.pairing=="uniform":
                 other_basename = random.sample(self.sequences_by_categories[category][sequence], 1)[0]
             elif self.pairing=="next":
                 current_index = self.sequences_by_categories[category][sequence].index(basename)
-                other_basename = self.get_next_basename(current_index, category, sequence)
+                other_basename = self.get_next_basename(current_index, category, sequence, dist)
             elif self.pairing=="previous":
                 current_index = self.sequences_by_categories[category][sequence].index(basename)
-                other_basename = self.get_previous_basename(current_index, category, sequence)
+                other_basename = self.get_previous_basename(current_index, category, sequence, dist)
             elif self.pairing=="next_and_previous":
                 current_index = self.sequences_by_categories[category][sequence].index(basename)
                 if random.choice([True,False]):
-                    other_basename = self.get_next_basename(current_index, category, sequence)
+                    other_basename = self.get_next_basename(current_index, category, sequence, dist)
                 else:
-                    other_basename = self.get_previous_basename(current_index, category, sequence)
+                    other_basename = self.get_previous_basename(current_index, category, sequence, dist)
             elif self.pairing=="same":
                 other_basename=basename #Basic SimSiam setup
             else:
@@ -160,19 +165,24 @@ class ObjectronDataset(torch.utils.data.Dataset):
         
         raise ValueError(f"Unable to find another different image for this batch. Please check if there is more than one sample in the sequence! {image_path1}")
 
-    def get_next_basename(self, current_index, category, sequence):
-        if (current_index+1) < len(self.sequences_by_categories[category][sequence]):
-            next_index=current_index+1
+    def get_next_basename(self, current_index, category, sequence, distance=1):
+        assert distance < 5,f"Weird choice of maximum distance: {distance} ;). Comment out if this is intended"
+        assert distance > 0,"Negative distances are invalid!"
+        if (current_index+distance) < len(self.sequences_by_categories[category][sequence]):
+            next_index=current_index+distance
         else:
-            next_index=current_index-1 
+            next_index=current_index-distance #For the last picture, give the previous one.
         next_basename = self.sequences_by_categories[category][sequence][next_index]
         return next_basename
     
-    def get_previous_basename(self, current_index, category, sequence):
-        if current_index==0:
-            previous_index=1 #For the first picture, give the next one instead of the previous one.
+    def get_previous_basename(self, current_index, category, sequence, distance=1):
+        assert distance < 5,f"Weird choice of maximum distance: {distance} ;). Comment out if this is intended"
+        assert distance > 0,"Negative distances are invalid!"
+
+        if (current_index-distance)<0:
+            previous_index=distance #For the first picture, give the next one instead of the previous one.
         else:
-            previous_index=current_index-1 
+            previous_index=current_index-distance 
         next_basename = self.sequences_by_categories[category][sequence][previous_index]
         return next_basename
         
