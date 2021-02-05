@@ -166,7 +166,7 @@ class ObjectronDataset(torch.utils.data.Dataset):
         raise ValueError(f"Unable to find another different image for this batch. Please check if there is more than one sample in the sequence! {image_path1}")
 
     def get_next_basename(self, current_index, category, sequence, distance=1):
-        assert distance < 5,f"Weird choice of maximum distance: {distance} ;). Comment out if this is intended"
+        assert distance < 10,f"Weird choice of maximum distance: {distance} ;). Comment out if this is intended"
         assert distance > 0,"Negative distances are invalid!"
         if (current_index+distance) < len(self.sequences_by_categories[category][sequence]):
             next_index=current_index+distance
