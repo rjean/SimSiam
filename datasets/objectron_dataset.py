@@ -41,11 +41,11 @@ class ObjectronDataset(torch.utils.data.Dataset):
         self.root=root
         self.memory = memory
         self.pairing = objectron_pair #Pairing strategy: uniform, next
-        
+        self.offsets = [1] #Default
         if "next_" in self.pairing or "previous_" in self.pairing:
             self.offsets = list(range(1,1+int(self.pairing.split("_")[1])))
             self.pairing = self.pairing.split("_")[0]
-        print(f"Pairing mode: {self.pairing}. Possible offsets={self.offsets} Memory dataloader: {self.memory}")
+        print(f"Pairing mode: {self.pairing}. Possible offset (for next or previous)={self.offsets} Memory dataloader: {self.memory}")
         self.split = split
         self.transform = transform
         self.size = None
